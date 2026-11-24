@@ -1,0 +1,18 @@
+---
+import Base from '../layouts/Base.astro';
+import { SITE } from '../lib/site';
+---
+<Base title={`Política de Privacidade | ${SITE.name}`} description="Como a Alves Negócios Imobiliários coleta, usa e protege seus dados pessoais, conforme a LGPD." noindex>
+  <section class="container-x max-w-3xl pb-20 pt-28 sm:pt-36">
+    <h1 class="text-4xl font-semibold">Política de Privacidade</h1>
+    <div class="mt-6 space-y-4 leading-relaxed text-stone-700">
+      <p>A {SITE.name} respeita a sua privacidade e trata os dados pessoais em conformidade com a Lei Geral de Proteção de Dados (Lei 13.709/2018).</p>
+      <h2 class="pt-4 text-2xl font-semibold">Dados coletados</h2>
+      <p>Coletamos apenas os dados que você nos informa ao entrar em contato (nome, telefone, e-mail) e dados de navegação anônimos, via Google Analytics, para melhorar o site.</p>
+      <h2 class="pt-4 text-2xl font-semibold">Uso das informações</h2>
+      <p>Usamos seus dados para responder solicitações, apresentar imóveis de seu interesse e conduzir negociações. Não vendemos nem compartilhamos seus dados com terceiros para fins de marketing.</p>
+      <h2 class="pt-4 text-2xl font-semibold">Seus direitos</h2>
+      <p>Você pode solicitar acesso, correção ou exclusão dos seus dados a qualquer momento pelo e-mail <a class="text-brand-700 underline" href={`mailto:${SITE.email}`}>{SITE.email}</a>.</p>
+    </div>
+  </section>
+</Base>

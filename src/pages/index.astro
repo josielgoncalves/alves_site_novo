@@ -1,0 +1,135 @@
+---
+import { Image, getImage } from 'astro:assets';
+import Base from '../layouts/Base.astro';
+import Icon from '../components/Icon.astro';
+import PropertyCard from '../components/PropertyCard.astro';
+import Faq from '../components/Faq.astro';
+import { getImoveis, available, groupBy } from '../lib/api';
+import { SITE, wa } from '../lib/site';
+import banner from '../assets/banner.jpeg';
+import sobre from '../assets/sobre.jpg';
+
+const all = available(await getImoveis());
+const featured = (all.filter((i) => i.destaque).length >= 3 ? all.filter((i) => i.destaque) : all).slice(0, 6);
+const cities = [...groupBy(all, (i) => i.citySlug)].map(([slug, l]) => ({ slug, label: l[0].cityLabel, n: l.length })).sort((a, b) => b.n - a.n);
+const typeIcon = (t: string) => { const k = t.toLowerCase(); return k.includes('terreno') ? 'land' : k.includes('sítio') || k.includes('sitio') || k.includes('chácara') ? 'tree' : k.includes('sala') ? 'store' : k.includes('apart') ? 'apartment' : k.includes('prédio') || k.includes('predio') || k.includes('comercial') ? 'office' : 'home'; };
+const types = [...groupBy(all, (i) => i.typeSlug)].map(([slug, l]) => ({ slug, label: l[0].typePlural, n: l.length, icon: typeIcon(l[0].tipo) })).sort((a, b) => b.n - a.n);
+const heroImg = await getImage({ src: banner, width: 1280, format: 'webp', quality: 70 });
+const heroImgSm = await getImage({ src: banner, width: 800, format: 'webp', quality: 68 });
+const faq = [
+  { q: 'Vocês atendem em quais cidades?', a: 'Atuamos principalmente em Rolante, Riozinho e Taquara, além de Santo Antônio da Patrulha, Sapiranga, Campo Bom, São Leopoldo e demais cidades do Vale do Paranhana e região.' },
+  { q: 'Posso financiar um imóvel pela Alves Negócios Imobiliários?', a: 'Sim. Auxiliamos com simulação, documentação e todo o processo de financiamento bancário, inclusive com uso de FGTS quando permitido.' },
+  { q: 'Vocês trabalham com terrenos e sítios?', a: 'Sim, é uma de nossas especialidades. Temos terrenos para construção, sítios e chácaras no interior do RS, além de casas e apartamentos.' },
+  { q: 'Como anunciar meu imóvel com vocês?', a: `Chame no WhatsApp ${SITE.phone}. Fazemos a avaliação, produzimos fotos e divulgamos o seu imóvel para chegar ao comprador certo com segurança.` },
+  { q: 'A imobiliária é regulamentada?', a: `Sim, atuamos com registro no CRECI: ${SITE.creci}.` },
+];
+const schema = { '@context': 'https://schema.org', '@type': 'CollectionPage', name: 'Imobiliária em Rolante, Riozinho e Taquara', url: SITE.url };
+---
+<Base heroDark title="Imobiliária em Rolante, Riozinho e Taquara | Casas, Terrenos e Sítios à Venda – Alves Negócios Imobiliários" description="Encontre casas, terrenos, sítios e apartamentos à venda em Rolante, Riozinho, Taquara e região, RS. Atendimento personalizado, financiamento e segurança na negociação. Fale no WhatsApp." schema={schema} preloadImage={heroImg.src}>
+  <!-- HERO -->
+  <section class="relative isolate flex min-h-[min(100svh,1000px)] items-center overflow-hidden bg-forest text-white">
+    <div class="absolute inset-0 -z-10">
+      <img data-parallax="0.25" data-parallax-zoom src={heroImg.src} srcset={`${heroImgSm.src} 800w, ${heroImg.src} 1600w`} sizes="100vw" alt="Terreno gramado com palmeiras e mata ao fundo em Rolante, RS" fetchpriority="high" decoding="async" class="h-[125%] w-full -translate-y-[10%] object-cover" />
+      <div class="absolute inset-0 bg-gradient-to-b from-forest/80 via-forest/50 to-forest/95"></div>
+    </div>
+    <div class="container-x pb-16 pt-32">
+      <h1 class="max-w-3xl text-[2.6rem] font-semibold leading-[1.05] sm:text-6xl lg:text-7xl">Encontre seu imóvel ideal</h1>
+      <p class="mt-5 max-w-xl text-lg text-white/85 sm:text-xl">Imobiliária em Rolante, Riozinho e Taquara. Casas, terrenos e sítios com atendimento de quem conhece cada rua da região.</p>
+
+      <form action="/imoveis" method="get" class="mt-8 grid max-w-3xl gap-2 rounded-3xl bg-white p-3 text-stone-800 shadow-2xl sm:grid-cols-[1fr_1fr_auto]" role="search">
+        <label><span class="sr-only">Tipo de imóvel</span>
+          <select name="tipo" class="h-14 w-full rounded-2xl bg-stone-50 px-4 text-[15px]"><option value="">Todos os tipos</option>{types.map((t) => <option value={t.slug}>{t.label}</option>)}</select></label>
+        <label><span class="sr-only">Cidade</span>
+          <select name="cidade" class="h-14 w-full rounded-2xl bg-stone-50 px-4 text-[15px]"><option value="">Todas as cidades</option>{cities.map((c) => <option value={c.slug}>{c.label}</option>)}</select></label>
+        <button class="btn btn-primary !h-14 sm:px-8" type="submit"><Icon name="search" class="h-5 w-5" />Buscar</button>
+      </form>
+
+      <div class="mt-6 flex flex-wrap gap-3">
+        <a href={wa('Olá! Vim pelo site e quero ajuda para encontrar um imóvel.')} target="_blank" rel="noopener" class="btn btn-wa">Falar no WhatsApp</a>
+        <a href="/imoveis" class="btn btn-ghost">Ver todos os imóveis <Icon name="arrow" class="h-4 w-4" /></a>
+      </div>
+    </div>
+    <a href="#destaques" aria-label="Rolar para os destaques" class="absolute bottom-5 left-1/2 hidden -translate-x-1/2 animate-float text-white/70 sm:block"><Icon name="chev" class="h-8 w-8" /></a>
+  </section>
+
+  <!-- CATEGORIAS -->
+  <section class="container-x -mt-1 py-14 sm:py-20">
+    <ul class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+      {types.map((t, i) => (
+        <li class="reveal" style={`--d:${i * 0.05}s`}><a href={`/imoveis?tipo=${t.slug}`} class="flex h-full flex-col items-center gap-2 rounded-3xl bg-white p-5 text-center ring-1 ring-black/5 transition hover:-translate-y-1 hover:shadow-lg">
+          <span class="grid h-12 w-12 place-items-center rounded-2xl bg-brand-100 text-brand-700"><Icon name={t.icon} class="h-6 w-6" /></span>
+          <span class="font-semibold text-stone-900">{t.label}</span><span class="text-xs text-stone-500">{t.n} {t.n === 1 ? 'opção' : 'opções'}</span>
+        </a></li>
+      ))}
+    </ul>
+  </section>
+
+  <!-- DESTAQUES -->
+  <section id="destaques" class="container-x scroll-mt-24 pb-16 sm:pb-24">
+    <div class="flex flex-wrap items-end justify-between gap-4">
+      <div class="reveal"><span class="chip">Em destaque</span><h2 class="mt-3 text-3xl font-semibold sm:text-5xl">Imóveis selecionados</h2></div>
+      <a href="/imoveis" class="btn btn-outline">Ver todos ({all.length}) <Icon name="arrow" class="h-4 w-4" /></a>
+    </div>
+    <ul class="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+      {featured.map((p, i) => <li class="reveal" style={`--d:${(i % 3) * 0.08}s`}><PropertyCard p={p} /></li>)}
+    </ul>
+  </section>
+
+  <!-- BANDA PARALLAX -->
+  <section class="relative isolate overflow-hidden py-28 text-white sm:py-40">
+    <div class="absolute inset-0 -z-10 bg-forest">
+      <Image data-parallax="0.35" src={banner} alt="" width={1280} quality={60} format="webp" loading="lazy" class="h-[140%] w-full -translate-y-[15%] object-cover opacity-60" />
+      <div class="absolute inset-0 bg-forest/60"></div>
+    </div>
+    <div class="container-x text-center">
+      <p class="reveal mx-auto max-w-4xl font-display text-3xl leading-snug sm:text-5xl">Mais do que vender imóveis, ajudamos famílias a <em class="text-brand-300 not-italic">encontrar o lugar certo</em> para viver.</p>
+      <a href={wa('Olá! Quero vender ou comprar um imóvel.')} target="_blank" rel="noopener" class="btn btn-wa reveal mt-10">Quero conversar</a>
+    </div>
+  </section>
+
+  <!-- CIDADES -->
+  <section class="container-x py-16 sm:py-24">
+    <div class="reveal"><span class="chip">Onde atuamos</span><h2 class="mt-3 text-3xl font-semibold sm:text-5xl">Imóveis por cidade</h2></div>
+    <ul class="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      {cities.filter((c) => c.n > 0).slice(0, 8).map((c, i) => (
+        <li class="reveal" style={`--d:${(i % 4) * 0.06}s`}><a href={`/imoveis/${c.slug}`} class="group flex items-center justify-between rounded-2xl bg-white px-5 py-5 ring-1 ring-black/5 transition hover:bg-brand-700 hover:text-white">
+          <span><span class="block font-display text-xl font-semibold">{c.label}</span><span class="text-sm opacity-70">{c.n} {c.n === 1 ? 'imóvel' : 'imóveis'}</span></span>
+          <Icon name="arrow" class="h-5 w-5 transition group-hover:translate-x-1" />
+        </a></li>
+      ))}
+    </ul>
+  </section>
+
+  <!-- SOBRE -->
+  <section id="sobre" class="bg-brand-50/60 py-16 sm:py-24">
+    <div class="container-x grid items-center gap-12 lg:grid-cols-2">
+      <div class="relative reveal">
+        <div class="overflow-hidden rounded-[2rem] shadow-2xl"><Image src={sobre} alt="Mari e Renato Alves, corretores da Alves Negócios Imobiliários" width={900} quality={72} format="webp" loading="lazy" sizes="(min-width:1024px) 560px, 92vw" class="h-full w-full object-cover" /></div>
+        <div data-parallax="-0.08" class="absolute -bottom-6 -right-3 hidden rounded-2xl bg-white p-4 shadow-xl sm:block"><p class="font-display text-3xl font-semibold text-brand-700">{all.length}+</p><p class="text-xs text-stone-500">imóveis disponíveis</p></div>
+      </div>
+      <div class="reveal">
+        <span class="chip">Sobre nós</span>
+        <h2 class="mt-3 text-3xl font-semibold sm:text-5xl">Experiência e dedicação para achar o imóvel certo</h2>
+        <p class="mt-5 text-lg leading-relaxed text-stone-600">Somos a Mari e o Renato, da Alves Negócios Imobiliários. Atuamos há anos no mercado local para que comprar, vender ou alugar seja simples e seguro.</p>
+        <ul class="mt-8 grid gap-5 sm:grid-cols-2">
+          {[['shield', 'Segurança', 'Transparência e documentação em ordem em toda negociação.'], ['key', 'Agilidade', 'Processos otimizados para economizar o seu tempo.'], ['home', 'Conhecimento local', 'Quem vive e trabalha na região desde sempre.'], ['phone', 'Atendimento direto', 'Você fala com quem realmente conhece o imóvel.']].map(([i, t, d]) => (
+            <li class="flex gap-4"><span class="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-brand-100 text-brand-700"><Icon name={i} /></span><span><span class="block font-semibold">{t}</span><span class="text-sm text-stone-600">{d}</span></span></li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <Faq items={faq} />
+
+  <!-- CTA -->
+  <section class="relative isolate overflow-hidden bg-brand-700 py-20 text-center text-white">
+    <div data-parallax="0.15" class="absolute -left-20 -top-24 -z-10 h-72 w-72 rounded-full bg-brand-500/30 blur-3xl"></div>
+    <div data-parallax="-0.15" class="absolute -bottom-24 -right-20 -z-10 h-80 w-80 rounded-full bg-brand-900/40 blur-3xl"></div>
+    <div class="container-x">
+      <h2 class="mx-auto max-w-2xl text-3xl font-semibold sm:text-5xl">Pronto para encontrar o seu imóvel?</h2>
+      <p class="mx-auto mt-4 max-w-xl text-white/85">Chame a gente agora e receba atendimento personalizado.</p>
+      <div class="mt-8 flex flex-wrap justify-center gap-3"><a href={wa('Olá! Quero encontrar um imóvel.')} target="_blank" rel="noopener" class="btn btn-wa">WhatsApp</a><a href="/imoveis" class="btn btn-ghost">Ver imóveis</a></div>
+    </div>
+  </section>
+</Base>

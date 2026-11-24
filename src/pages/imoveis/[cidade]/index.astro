@@ -1,0 +1,47 @@
+---
+import Base from '../../../layouts/Base.astro';
+import Listing from '../../../components/Listing.astro';
+import Faq from '../../../components/Faq.astro';
+import { getImoveis, available, groupBy } from '../../../lib/api';
+import { SITE, wa } from '../../../lib/site';
+
+export async function getStaticPaths() {
+  const all = available(await getImoveis());
+  return [...groupBy(all, (i) => i.citySlug)].map(([slug, items]) => ({ params: { cidade: slug }, props: { items, label: items[0].cityLabel, slug } }));
+}
+const { items, label, slug } = Astro.props;
+const sorted = [...items].sort((a, b) => b.destaque - a.destaque || b.id - a.id);
+const types = [...groupBy(items, (i) => i.typeSlug)].map(([s, l]) => ({ slug: s, label: l[0].typePlural, n: l.length }));
+const min = Math.min(...items.map((i) => i.priceNum).filter(Boolean));
+const faq = [
+  { q: `Quais tipos de imóveis vocês têm em ${label}?`, a: `Atualmente temos ${items.length} imóveis em ${label}: ${types.map((t) => `${t.n} ${t.label.toLowerCase()}`).join(', ')}. A lista é atualizada constantemente.` },
+  { q: `Vocês ajudam com financiamento em ${label}?`, a: 'Sim. Orientamos todo o processo, da simulação à assinatura, inclusive financiamento bancário e uso de FGTS quando o imóvel permite.' },
+  { q: `Como agendar uma visita em ${label}?`, a: `Chame no WhatsApp ${SITE.phone}, informe o código do imóvel e combinamos o melhor dia e horário.` },
+];
+const schema = [
+  { '@context': 'https://schema.org', '@type': 'BreadcrumbList', itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'Início', item: SITE.url },
+    { '@type': 'ListItem', position: 2, name: 'Imóveis', item: SITE.url + '/imoveis' },
+    { '@type': 'ListItem', position: 3, name: label, item: `${SITE.url}/imoveis/${slug}` } ] },
+  { '@context': 'https://schema.org', '@type': 'ItemList', itemListElement: sorted.slice(0, 20).map((p, i) => ({ '@type': 'ListItem', position: i + 1, url: `${SITE.url}/imovel/${p.id}` })) },
+];
+---
+<Base title={`Imóveis em ${label} - RS: casas, terrenos e sítios à venda | ${SITE.short}`} description={`${items.length} imóveis à venda em ${label}/RS${isFinite(min) ? ` a partir de R$ ${min.toLocaleString('pt-BR')}` : ''}. Casas, terrenos, sítios e mais, com atendimento personalizado da Alves Negócios Imobiliários.`} schema={schema}>
+  <section class="bg-forest pb-10 pt-28 text-white sm:pt-36">
+    <div class="container-x">
+      <nav aria-label="Breadcrumb" class="text-sm text-white/60"><a href="/" class="hover:text-white">Início</a> / <a href="/imoveis" class="hover:text-white">Imóveis</a> / {label}</nav>
+      <h1 class="mt-3 text-4xl font-semibold sm:text-5xl">Imóveis à venda em {label}, RS</h1>
+      <p class="mt-3 max-w-2xl text-white/75">{items.length} opções disponíveis — {types.map((t) => `${t.n} ${t.label.toLowerCase()}`).join(' · ')}.</p>
+      <div class="mt-6 flex flex-wrap gap-2">
+        {types.map((t) => <a href={`/imoveis/${slug}/${t.slug}`} class="rounded-full border border-white/25 px-4 py-2 text-sm font-medium hover:bg-white/10">{t.label} em {label}</a>)}
+      </div>
+    </div>
+  </section>
+  <section class="container-x pb-12 pt-6"><Listing items={sorted} filters={false} /></section>
+  <section class="container-x max-w-4xl pb-6">
+    <h2 class="text-2xl font-semibold sm:text-3xl">Comprar imóvel em {label} com a Alves Negócios Imobiliários</h2>
+    <p class="mt-4 leading-relaxed text-stone-600">Atuamos em {label} e região com foco em segurança jurídica e agilidade. Nossa equipe acompanha você na escolha, visita, negociação, documentação e financiamento — para que a compra do seu imóvel seja tranquila do início ao fim.</p>
+    <a href={wa(`Olá! Quero ajuda para encontrar um imóvel em ${label}.`)} target="_blank" rel="noopener" class="btn btn-wa mt-6">Falar com um corretor</a>
+  </section>
+  <Faq items={faq} />
+</Base>

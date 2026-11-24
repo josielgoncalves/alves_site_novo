@@ -1,0 +1,140 @@
+---
+import { Image, getImage } from 'astro:assets';
+import mari from '../../assets/mari.jpg';
+import Base from '../../layouts/Base.astro';
+import Icon from '../../components/Icon.astro';
+import PropertyCard from '../../components/PropertyCard.astro';
+import { getImoveis, plain, propertyTitle } from '../../lib/api';
+import { SITE, wa } from '../../lib/site';
+
+export async function getStaticPaths() {
+  const all = await getImoveis();
+  return all.map((p) => ({
+    params: { id: String(p.id) },
+    props: { p, related: all.filter((o) => o.id !== p.id && !o.sold && !p.sold && o.citySlug === p.citySlug && o.typeSlug === p.typeSlug).slice(0, 3) },
+  }));
+}
+const { p, related } = Astro.props;
+const title = `${propertyTitle(p)} | ${p.priceLabel} — ${SITE.short}`.replace(/\s+/g, ' ');
+const description = plain(`${propertyTitle(p)}. ${p.quartos ? p.quartos + ' quartos, ' : ''}${p.area_total ? p.area_total + ' de área. ' : ''}${p.priceLabel}. ${p.descricao}`);
+const msg = `Olá! Tenho interesse no imóvel de código ${p.codigo} (${p.titulo}).`;
+const specs = [
+  p.quartos > 0 && { i: 'bed', l: 'Quartos', v: p.quartos },
+  p.banheiros > 0 && { i: 'bath', l: 'Banheiros', v: p.banheiros },
+  p.vagas > 0 && { i: 'car', l: 'Vagas', v: p.vagas },
+  p.area_total && p.area_total !== '0' && { i: 'ruler', l: 'Área total', v: p.area_total },
+  p.area_construida && p.area_construida !== '0' && { i: 'home', l: 'Construída', v: p.area_construida },
+].filter(Boolean) as { i: string; l: string; v: string | number }[];
+const url = `${SITE.url}/imovel/${p.id}`;
+let ogImg: string | undefined;
+try {
+  const og = await getImage({ src: p.images[0], width: 1200, height: 630, fit: 'cover', format: 'jpeg', quality: 72 });
+  ogImg = SITE.url + og.src;
+} catch { ogImg = undefined; }
+const schema = [
+  {
+    '@context': 'https://schema.org', '@type': 'RealEstateListing', name: propertyTitle(p), url, description,
+    image: p.images.slice(0, 8), datePosted: undefined,
+    about: { '@type': p.tipo === 'Terreno' ? 'Place' : 'Residence', name: p.titulo, numberOfRooms: p.quartos || undefined, floorSize: p.area_construida ? { '@type': 'QuantitativeValue', value: parseFloat(p.area_construida), unitCode: 'MTK' } : undefined, address: { '@type': 'PostalAddress', addressLocality: p.cityLabel, addressRegion: 'RS', addressCountry: 'BR', streetAddress: p.bairro ?? undefined } },
+    offers: p.priceNum ? { '@type': 'Offer', price: p.priceNum, priceCurrency: 'BRL', availability: p.sold ? 'https://schema.org/SoldOut' : 'https://schema.org/InStock', seller: { '@id': SITE.url + '/#org' } } : undefined,
+  },
+  { '@context': 'https://schema.org', '@type': 'BreadcrumbList', itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'Início', item: SITE.url },
+    { '@type': 'ListItem', position: 2, name: 'Imóveis', item: SITE.url + '/imoveis' },
+    { '@type': 'ListItem', position: 3, name: p.cityLabel, item: `${SITE.url}/imoveis/${p.citySlug}` },
+    { '@type': 'ListItem', position: 4, name: p.titulo, item: url } ] },
+];
+---
+<Base title={title} description={description} image={ogImg ?? p.images[0]} imageAlt={propertyTitle(p)} imageSize={ogImg ? [1200, 630] : undefined} schema={schema} noindex={p.sold} preloadImage={undefined}>
+  <div class="container-x pb-20 pt-24 sm:pt-28">
+    <nav aria-label="Breadcrumb" class="mb-4 text-sm text-stone-500"><a href="/" class="hover:text-brand-700">Início</a> / <a href="/imoveis" class="hover:text-brand-700">Imóveis</a> / <a href={`/imoveis/${p.citySlug}`} class="hover:text-brand-700">{p.cityLabel}</a> / <span class="text-stone-800">{p.codigo}</span></nav>
+
+    <div class="grid gap-8 lg:grid-cols-[1fr_380px]">
+      <div class="min-w-0">
+        <!-- Galeria -->
+        <div class="relative -mx-5 sm:mx-0">
+          <ul id="gal" class="flex snap-x snap-mandatory overflow-x-auto scroll-smooth [scrollbar-width:none] sm:rounded-3xl [&::-webkit-scrollbar]:hidden">
+            {p.images.map((src, i) => (
+              <li class="aspect-[4/3] w-full shrink-0 snap-center bg-stone-200 sm:aspect-[16/10]">
+                {i === 0
+                  ? <Image src={src} alt={`${propertyTitle(p)} — foto 1`} width={1100} height={825} widths={[480, 800, 1100]} sizes="(min-width:1024px) 780px, 100vw" quality={75} format="webp" loading="eager" fetchpriority="high" class="h-full w-full object-cover" />
+                  : <img src={src} alt={`${propertyTitle(p)} — foto ${i + 1}`} loading="lazy" decoding="async" class="h-full w-full object-cover" />}
+              </li>
+            ))}
+          </ul>
+          <span class="pointer-events-none absolute bottom-3 right-3 rounded-full bg-black/60 px-3 py-1 text-xs font-semibold text-white backdrop-blur"><span id="gcur">1</span> / {p.images.length}</span>
+          {p.images.length > 1 && (<>
+            <button id="gprev" aria-label="Foto anterior" class="absolute left-3 top-1/2 hidden h-11 w-11 -translate-y-1/2 rotate-180 place-items-center rounded-full bg-white/90 shadow sm:grid"><Icon name="arrow" /></button>
+            <button id="gnext" aria-label="Próxima foto" class="absolute right-3 top-1/2 hidden h-11 w-11 -translate-y-1/2 place-items-center rounded-full bg-white/90 shadow sm:grid"><Icon name="arrow" /></button>
+          </>)}
+          {p.sold && <div class="absolute inset-x-0 top-4 mx-auto w-fit rounded-full bg-stone-900 px-5 py-2 text-sm font-bold uppercase tracking-wider text-white">Vendido</div>}
+        </div>
+
+        <div class="mt-6">
+          <p class="flex items-center gap-1.5 text-sm font-semibold text-brand-700"><Icon name="pin" class="h-4 w-4" />{p.bairro ? `${p.bairro}, ` : ''}{p.cityLabel} – RS · Cód. {p.codigo}</p>
+          <h1 class="mt-2 text-3xl font-semibold leading-tight text-stone-900 sm:text-4xl">{propertyTitle(p)}</h1>
+          <p class="mt-1 text-stone-500">{p.titulo}</p>
+          <p class="mt-4 text-4xl font-bold text-brand-700">{p.priceLabel}</p>
+        </div>
+
+        {specs.length > 0 && (
+          <ul class="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3">
+            {specs.map((s) => <li class="flex items-center gap-3 rounded-2xl bg-white p-4 ring-1 ring-black/5"><span class="grid h-11 w-11 place-items-center rounded-xl bg-brand-100 text-brand-700"><Icon name={s.i} /></span><span><span class="block text-xs text-stone-500">{s.l}</span><span class="font-semibold">{s.v}</span></span></li>)}
+          </ul>
+        )}
+
+        <section class="mt-10">
+          <h2 class="text-2xl font-semibold">Sobre este imóvel</h2>
+          <p class="prose-desc mt-3 leading-relaxed text-stone-700">{p.descricao}</p>
+        </section>
+      </div>
+
+      <aside class="lg:sticky lg:top-28 lg:self-start">
+        <div class="rounded-3xl bg-forest p-6 text-white shadow-xl">
+          <p class="font-display text-2xl">Gostou deste imóvel?</p>
+          <p class="mt-1 text-sm text-white/70">Fale agora com a Mari ou o Renato.</p>
+          <a href={wa(msg)} target="_blank" rel="noopener" class="btn btn-wa mt-5 w-full">Chamar no WhatsApp</a>
+          <a href={wa(`Olá! Gostaria de agendar uma visita ao imóvel ${p.codigo} (${p.titulo}).`)} target="_blank" rel="noopener" class="btn btn-ghost mt-3 w-full">Agendar visita</a>
+          <button id="share" type="button" class="btn btn-ghost mt-3 w-full"><Icon name="share" class="h-4 w-4" />Compartilhar</button>
+          <p class="mt-4 text-center text-xs text-white/50">{SITE.creci}</p>
+        </div>
+        <div class="mt-6 rounded-3xl bg-brand-50 p-6">
+          <div class="mb-4 flex items-center gap-4">
+            <Image src={mari} alt="Mari Alves" width={96} height={96} class="h-12 w-12 rounded-full border-2 border-white object-cover" />
+            <div>
+              <h4 class="font-medium text-stone-800">Mari Alves</h4>
+              <p class="text-sm text-stone-600">Corretora Responsável</p>
+              <p class="text-sm text-stone-600">CRECI RS079504</p>
+            </div>
+          </div>
+          <p class="mb-4 text-sm text-stone-600">"Estou à disposição para te ajudar a encontrar o imóvel dos seus sonhos. Conte comigo!"</p>
+          <a href={SITE.instagram} target="_blank" rel="noopener noreferrer" class="block w-full rounded-xl border border-brand-200 bg-white px-4 py-2.5 text-center text-sm font-semibold text-brand-700 transition hover:bg-brand-100">Ver perfil da corretora</a>
+        </div>
+      </aside>
+    </div>
+
+    {related.length > 0 && (
+      <section class="mt-16">
+        <h2 class="text-2xl font-semibold sm:text-3xl">Outros {p.typePlural.toLowerCase()} em {p.cityLabel}</h2>
+        <ul class="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">{related.map((r) => <li><PropertyCard p={r} /></li>)}</ul>
+      </section>
+    )}
+  </div>
+
+  <div class="fixed inset-x-0 bottom-0 z-40 border-t border-stone-200 bg-white/95 p-3 pb-[max(.75rem,env(safe-area-inset-bottom))] backdrop-blur lg:hidden">
+    <a href={wa(msg)} target="_blank" rel="noopener" class="btn btn-wa w-full">Tenho interesse · WhatsApp</a>
+  </div>
+
+  <script define:vars={{ title: propertyTitle(p), text: `${p.titulo}\n${p.priceLabel}` }}>
+    const g = document.getElementById('gal'), cur = document.getElementById('gcur');
+    const step = () => g.clientWidth;
+    g.addEventListener('scroll', () => { cur.textContent = String(Math.round(g.scrollLeft / step()) + 1); }, { passive: true });
+    document.getElementById('gprev')?.addEventListener('click', () => g.scrollBy({ left: -step() }));
+    document.getElementById('gnext')?.addEventListener('click', () => g.scrollBy({ left: step() }));
+    document.getElementById('share').addEventListener('click', async () => {
+      const data = { title, text, url: location.href };
+      if (navigator.share) { try { await navigator.share(data); } catch {} }
+      else window.open('https://wa.me/?text=' + encodeURIComponent(text + '\n\n' + location.href), '_blank', 'noopener');
+    });
+  </script>
+</Base>

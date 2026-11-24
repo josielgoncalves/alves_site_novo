@@ -1,0 +1,44 @@
+---
+import Icon from './Icon.astro';
+import { SITE, wa } from '../lib/site';
+import logo from '../assets/logo.png';
+import { Image } from 'astro:assets';
+const { overHero = false } = Astro.props;
+const links = [
+  { href: '/', label: 'Início' },
+  { href: '/imoveis', label: 'Imóveis' },
+  { href: '/#sobre', label: 'Sobre' },
+  { href: '/contato', label: 'Contato' },
+];
+---
+<header id="hdr" data-over={overHero ? '1' : '0'} class="fixed inset-x-0 top-0 z-50 bg-white/85 shadow-sm backdrop-blur-lg">
+  <div class="container-x relative flex h-20 items-center justify-between sm:h-24">
+    <a href="/" class="flex items-center" aria-label={`${SITE.name} — página inicial`}>
+      <Image src={logo} alt={SITE.name} width={160} height={170} class="h-16 w-auto object-contain sm:h-20" loading="eager" />
+    </a>
+    <nav class="hdr-text absolute left-1/2 hidden -translate-x-1/2 items-center gap-8 md:flex" aria-label="Principal">
+      {links.map((l) => <a href={l.href} class="text-[15px] font-medium opacity-90 transition hover:opacity-100">{l.label}</a>)}
+    </nav>
+    <a href={wa('Olá! Gostaria de falar com um corretor.')} target="_blank" rel="noopener" class="btn btn-primary hidden !py-2.5 md:inline-flex"><Icon name="phone" class="h-4 w-4" />Fale Conosco</a>
+    <button id="menuBtn" class="hdr-text grid h-12 w-12 place-items-center rounded-full md:hidden" aria-label="Abrir menu" aria-expanded="false" aria-controls="mobileNav"><Icon name="menu" class="h-6 w-6" /></button>
+  </div>
+</header>
+<div id="mobileNav" aria-hidden="true" class="invisible fixed inset-0 z-[60] translate-x-full bg-white transition-all duration-300 ease-in-out md:hidden">
+  <div class="container-x flex h-20 items-center justify-end">
+    <button id="menuClose" class="grid h-12 w-12 place-items-center text-stone-800" aria-label="Fechar menu"><Icon name="close" class="h-6 w-6" /></button>
+  </div>
+  <nav class="flex h-[calc(100%-5rem)] flex-col items-center justify-center gap-8 pb-16" aria-label="Mobile">
+    {links.map((l) => <a href={l.href} class="text-2xl font-medium text-stone-800 transition-colors hover:text-brand-600">{l.label}</a>)}
+    <a href={wa('Olá! Gostaria de falar com um corretor.')} target="_blank" rel="noopener" class="btn btn-primary mt-4 !px-6 !py-4"><Icon name="phone" class="h-[18px] w-[18px]" />Fale Conosco</a>
+  </nav>
+</div>
+<style is:global>
+  #hdr .hdr-text { color: var(--color-forest); }
+</style>
+<script>
+  const m = document.getElementById('mobileNav')!, b = document.getElementById('menuBtn')!;
+  const toggle = (o: boolean) => { m.classList.toggle('translate-x-full', !o); m.classList.toggle('invisible', !o); m.setAttribute('aria-hidden', String(!o)); b.setAttribute('aria-expanded', String(o)); document.body.style.overflow = o ? 'hidden' : ''; };
+  b.addEventListener('click', () => toggle(true));
+  document.getElementById('menuClose')!.addEventListener('click', () => toggle(false));
+  m.querySelectorAll('a').forEach((a) => a.addEventListener('click', () => toggle(false)));
+</script>

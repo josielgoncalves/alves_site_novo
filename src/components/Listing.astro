@@ -1,0 +1,67 @@
+---
+import PropertyCard from './PropertyCard.astro';
+import Icon from './Icon.astro';
+import type { Imovel } from '../lib/api';
+const { items, filters = true } = Astro.props as { items: Imovel[]; filters?: boolean };
+const cities = [...new Map(items.map((i) => [i.citySlug, i.cityLabel])).entries()].sort((a, b) => a[1].localeCompare(b[1]));
+const types = [...new Map(items.map((i) => [i.typeSlug, i.typePlural])).entries()].sort((a, b) => a[1].localeCompare(b[1]));
+const sel = 'h-12 w-full rounded-xl border border-stone-200 bg-white px-3 text-[15px] focus:border-brand-500';
+---
+<div id="listing">
+  {filters && (
+    <form id="flt" class="sticky top-16 z-30 -mx-5 grid grid-cols-2 gap-2 border-b border-stone-200 bg-sand/95 px-5 py-3 backdrop-blur sm:top-20 sm:mx-0 sm:grid-cols-3 sm:rounded-2xl sm:border sm:p-4 lg:grid-cols-6" role="search" onsubmit="return false">
+      <label class="col-span-2 sm:col-span-3 lg:col-span-2"><span class="sr-only">Buscar</span>
+        <input name="q" type="search" placeholder="Bairro, código ou palavra-chave" class={sel} autocomplete="off" />
+      </label>
+      <label><span class="sr-only">Finalidade</span>
+        <select name="neg" class={sel}><option value="">Comprar ou alugar</option><option value="0">Comprar</option><option value="1">Alugar</option></select></label>
+      <label><span class="sr-only">Tipo</span>
+        <select name="tipo" class={sel}><option value="">Todos os tipos</option>{types.map(([s, l]) => <option value={s}>{l}</option>)}</select></label>
+      <label><span class="sr-only">Cidade</span>
+        <select name="cidade" class={sel}><option value="">Todas as cidades</option>{cities.map(([s, l]) => <option value={s}>{l}</option>)}</select></label>
+      <label><span class="sr-only">Preço máximo</span>
+        <select name="max" class={sel}><option value="">Qualquer preço</option>{[100000, 200000, 300000, 500000, 800000, 1500000].map((v) => <option value={v}>Até R$ {v.toLocaleString('pt-BR')}</option>)}</select></label>
+    </form>
+  )}
+  <div class="mt-5 flex items-center justify-between">
+    <p id="count" class="text-sm text-stone-600" aria-live="polite">{items.length} {items.length === 1 ? 'imóvel' : 'imóveis'}</p>
+    {filters && <button id="reset" type="button" class="hidden text-sm font-semibold text-brand-700 underline">Limpar filtros</button>}
+  </div>
+  <ul class="mt-4 grid gap-5 sm:grid-cols-2 lg:grid-cols-3" id="grid">
+    {items.map((p, i) => <li data-li><PropertyCard p={p} eager={i < 2} /></li>)}
+  </ul>
+  <div id="empty" hidden class="mt-10 rounded-3xl bg-white p-10 text-center ring-1 ring-black/5">
+    <Icon name="search" class="mx-auto h-10 w-10 text-brand-500" />
+    <p class="mt-4 font-display text-2xl">Nenhum imóvel com esses filtros</p>
+    <p class="mt-2 text-stone-600">Fale com a gente — temos imóveis que ainda não foram publicados.</p>
+  </div>
+</div>
+{filters && (
+  <script>
+    const f = document.getElementById('flt') as HTMLFormElement;
+    const lis = [...document.querySelectorAll<HTMLElement>('[data-li]')];
+    const count = document.getElementById('count')!, empty = document.getElementById('empty')!, reset = document.getElementById('reset')!;
+    const norm = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+    const apply = () => {
+      const d = new FormData(f);
+      const q = norm(String(d.get('q') || '')), neg = d.get('neg'), tipo = d.get('tipo'), cidade = d.get('cidade'), max = Number(d.get('max') || 0);
+      let n = 0;
+      lis.forEach((li) => {
+        const c = li.querySelector<HTMLElement>('[data-card]')!.dataset;
+        const ok = (!q || norm(c.q!).includes(q)) && (neg === '' || neg === null || c.rent === neg) && (!tipo || c.type === tipo) && (!cidade || c.city === cidade) && (!max || Number(c.price) <= max);
+        li.hidden = !ok; if (ok) n++;
+      });
+      count.textContent = `${n} ${n === 1 ? 'imóvel' : 'imóveis'}`;
+      empty.hidden = n > 0;
+      const dirty = [...d.values()].some(Boolean); reset.classList.toggle('hidden', !dirty);
+      const u = new URL(location.href); u.search = '';
+      for (const [k, v] of d) if (v) u.searchParams.set(k, String(v));
+      history.replaceState(null, '', u);
+    };
+    const u = new URLSearchParams(location.search);
+    for (const [k, v] of u) { const el = f.elements.namedItem(k) as HTMLInputElement | null; if (el) el.value = v; }
+    f.addEventListener('input', apply); f.addEventListener('change', apply);
+    reset.addEventListener('click', () => { f.reset(); apply(); });
+    apply();
+  </script>
+)}

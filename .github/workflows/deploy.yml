@@ -1,0 +1,42 @@
+name: Build e deploy (Hostinger)
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: '*/30 * * * *'      # a cada 30 min (UTC)
+  workflow_dispatch:             # botão "Run workflow"
+  repository_dispatch:           # webhook: types: [imoveis-atualizados]
+    types: [imoveis-atualizados]
+
+concurrency:
+  group: deploy
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - name: Confere se o build gerou páginas
+        run: test "$(find dist -name '*.html' | wc -l)" -gt 50
+
+      - name: Prepara SSH
+        run: |
+          install -m 700 -d ~/.ssh
+          echo "${{ secrets.SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -p "${{ secrets.SSH_PORT }}" "${{ secrets.SSH_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Envia para a Hostinger
+        run: |
+          rsync -az --delete --exclude='.well-known' --exclude='cgi-bin' \
+            -e "ssh -p ${{ secrets.SSH_PORT }} -i ~/.ssh/id_ed25519" \
+            dist/ "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:${{ secrets.SSH_PATH }}/"

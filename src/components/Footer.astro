@@ -1,0 +1,39 @@
+---
+import Icon from './Icon.astro';
+import { SITE, wa } from '../lib/site';
+const { cities = [] } = Astro.props as { cities?: { slug: string; label: string }[] };
+const year = new Date().getFullYear();
+---
+<footer class="bg-forest text-white/80">
+  <div class="container-x grid gap-10 py-14 md:grid-cols-4">
+    <div class="md:col-span-2">
+      <p class="font-display text-2xl text-white">Alves Negócios Imobiliários</p>
+      <p class="mt-3 max-w-md text-sm leading-relaxed">Casas, terrenos e sítios em Rolante, Riozinho, Taquara e região. Atendimento ágil, personalizado e com total segurança na sua negociação.</p>
+      <p class="mt-4 text-xs text-white/50">{SITE.creci}</p>
+      <a href={SITE.instagram} target="_blank" rel="noopener" aria-label="Instagram da Mari Alves" class="mt-5 inline-grid h-11 w-11 place-items-center rounded-full bg-white/10 transition hover:bg-white/20"><Icon name="insta" /></a>
+    </div>
+    <div>
+      <p class="mb-3 text-sm font-semibold uppercase tracking-wider text-white">Navegue</p>
+      <ul class="space-y-1 text-sm">
+        <li><a class="inline-block py-1.5 hover:text-white" href="/imoveis">Todos os imóveis</a></li>
+        <li><a class="inline-block py-1.5 hover:text-white" href="/imoveis/rolante">Imóveis em Rolante</a></li>
+        <li><a class="inline-block py-1.5 hover:text-white" href="/imoveis/riozinho">Imóveis em Riozinho</a></li>
+        <li><a class="inline-block py-1.5 hover:text-white" href="/imoveis/taquara">Imóveis em Taquara</a></li>
+        <li><a class="inline-block py-1.5 hover:text-white" href="/contato">Contato</a></li>
+        <li><a class="inline-block py-1.5 hover:text-white" href="/politica-de-privacidade">Política de privacidade</a></li>
+      </ul>
+    </div>
+    <div>
+      <p class="mb-3 text-sm font-semibold uppercase tracking-wider text-white">Fale conosco</p>
+      <ul class="space-y-3 text-sm">
+        <li><a class="flex items-center gap-2 hover:text-white" href={wa('Olá!')} target="_blank" rel="noopener"><Icon name="phone" class="h-4 w-4" />{SITE.phone} · Mari</a></li>
+        <li><a class="flex items-center gap-2 hover:text-white" href={wa('Olá!', '5551998849654')} target="_blank" rel="noopener"><Icon name="phone" class="h-4 w-4" />{SITE.phone2} · Renato</a></li>
+        <li><a class="flex items-center gap-2 break-all hover:text-white" href={`mailto:${SITE.email}`}><Icon name="mail" class="h-4 w-4 shrink-0" />{SITE.email}</a></li>
+        <li class="flex items-center gap-2"><Icon name="clock" class="h-4 w-4 shrink-0" />{SITE.hours}</li>
+      </ul>
+    </div>
+  </div>
+  <div class="border-t border-white/10 py-5 text-center text-xs text-white/50">
+    © {year} Alves Negócios Imobiliários. Todos os direitos reservados. · Desenvolvido por <a href="https://lumencode.com.br" target="_blank" rel="noopener" class="underline hover:text-white">Lumen Code</a>
+  </div>
+</footer>

@@ -1,0 +1,37 @@
+---
+import Base from '../../../layouts/Base.astro';
+import Listing from '../../../components/Listing.astro';
+import { getImoveis, available, groupBy } from '../../../lib/api';
+import { SITE, wa } from '../../../lib/site';
+
+export async function getStaticPaths() {
+  const all = available(await getImoveis());
+  const out: any[] = [];
+  for (const [city, ci] of groupBy(all, (i) => i.citySlug))
+    for (const [type, ti] of groupBy(ci, (i) => i.typeSlug))
+      out.push({ params: { cidade: city, tipo: type }, props: { items: ti, city: ti[0].cityLabel, type: ti[0].typePlural, citySlug: city } });
+  return out;
+}
+const { items, city, type, citySlug } = Astro.props;
+const { tipo } = Astro.params;
+const sorted = [...items].sort((a, b) => b.destaque - a.destaque || b.id - a.id);
+const prices = items.map((i) => i.priceNum).filter(Boolean);
+const schema = { '@context': 'https://schema.org', '@type': 'BreadcrumbList', itemListElement: [
+  { '@type': 'ListItem', position: 1, name: 'Início', item: SITE.url },
+  { '@type': 'ListItem', position: 2, name: 'Imóveis', item: SITE.url + '/imoveis' },
+  { '@type': 'ListItem', position: 3, name: city, item: `${SITE.url}/imoveis/${citySlug}` },
+  { '@type': 'ListItem', position: 4, name: type, item: `${SITE.url}/imoveis/${citySlug}/${tipo}` } ] };
+---
+<Base title={`${type} à venda em ${city} - RS | ${SITE.short}`} description={`${items.length} ${type.toLowerCase()} à venda em ${city}/RS${prices.length ? ` a partir de R$ ${Math.min(...prices).toLocaleString('pt-BR')}` : ''}. Fotos, valores e atendimento direto no WhatsApp.`} schema={schema}>
+  <section class="bg-forest pb-10 pt-28 text-white sm:pt-36">
+    <div class="container-x">
+      <nav aria-label="Breadcrumb" class="text-sm text-white/60"><a href="/" class="hover:text-white">Início</a> / <a href="/imoveis" class="hover:text-white">Imóveis</a> / <a href={`/imoveis/${citySlug}`} class="hover:text-white">{city}</a> / {type}</nav>
+      <h1 class="mt-3 text-4xl font-semibold sm:text-5xl">{type} à venda em {city}, RS</h1>
+      <p class="mt-3 max-w-2xl text-white/75">{items.length} {items.length === 1 ? 'opção disponível' : 'opções disponíveis'} agora.</p>
+    </div>
+  </section>
+  <section class="container-x pb-12 pt-6"><Listing items={sorted} filters={false} /></section>
+  <section class="container-x max-w-4xl pb-20">
+    <p class="leading-relaxed text-stone-600">Procurando {type.toLowerCase()} em {city}? A Alves Negócios Imobiliários conhece a região e negocia com segurança. <a class="font-semibold text-brand-700 underline" href={wa(`Olá! Procuro ${type.toLowerCase()} em ${city}.`)} target="_blank" rel="noopener">Fale com a gente no WhatsApp</a> ou veja <a class="font-semibold text-brand-700 underline" href={`/imoveis/${citySlug}`}>todos os imóveis em {city}</a>.</p>
+  </section>
+</Base>
